@@ -11,17 +11,30 @@
 import 'core-js/stable';
 import 'regenerator-runtime/runtime';
 import path from 'path';
-import { app, BrowserWindow, shell, ipcMain } from 'electron';
+import { app, BrowserWindow, shell, ipcMain, screen, Tray, Menu, nativeImage } from 'electron';
 import { autoUpdater } from 'electron-updater';
 import log from 'electron-log';
-import MenuBuilder from './menu';
+import AutoLaunch from 'auto-launch';
 import { resolveHtmlPath } from './util';
+import AppProcess from './AppProcess';
+import * as ipcMainItems from './ipcMain';
+
+const appProcess = new AppProcess();
+ipcMainItems.init(appProcess);
 
 export default class AppUpdater {
   constructor() {
     log.transports.file.level = 'info';
     autoUpdater.logger = log;
     autoUpdater.checkForUpdatesAndNotify();
+
+    const autoLaunch = new AutoLaunch({
+      name: 'Screentime by Celsbits',
+      path: process.execPath,
+    });
+
+    if (appProcess.getAppState().autoLaunch && !autoLaunch.isEnabled()) autoLaunch.enable();
+    else if (!appProcess.getAppState().autoLaunch && autoLaunch.isEnabled()) autoLaunch.disable();
   }
 }
 
@@ -33,13 +46,29 @@ ipcMain.on('ipc-example', async (event, arg) => {
   event.reply('ipc-example', msgTemplate('pong'));
 });
 
+ipcMain.on('close-app', (event) => {
+  BrowserWindow.getFocusedWindow()?.hide();
+  appProcess.setAppState({ hidden: true });
+});
+
+ipcMain.on('adjust-window-size', (evt, { width, height }: { width: number; height: number }) => {
+  BrowserWindow.getFocusedWindow()?.setMinimumSize(width, height);
+  BrowserWindow.getFocusedWindow()?.setSize(width, height);
+});
+
+ipcMain.on('ready', async (event) => {
+  appProcess.init();
+  event.reply('get-current-snapshot', appProcess.getSnapshot());
+});
+
 if (process.env.NODE_ENV === 'production') {
   const sourceMapSupport = require('source-map-support');
   sourceMapSupport.install();
 }
 
-const isDevelopment =
-  process.env.NODE_ENV === 'development' || process.env.DEBUG_PROD === 'true';
+console.log('EXEC PATH ', process.execPath);
+
+const isDevelopment = process.env.NODE_ENV === 'development' || process.env.DEBUG_PROD === 'true';
 
 if (isDevelopment) {
   require('electron-debug')();
@@ -57,27 +86,32 @@ const installExtensions = async () => {
     )
     .catch(console.log);
 };
+const RESOURCES_PATH = app.isPackaged ? path.join(process.resourcesPath, 'assets') : path.join(__dirname, '../../assets');
+
+const getAssetPath = (...paths: string[]): string => {
+  return path.join(RESOURCES_PATH, ...paths);
+};
 
 const createWindow = async () => {
   if (isDevelopment) {
     await installExtensions();
   }
 
-  const RESOURCES_PATH = app.isPackaged
-    ? path.join(process.resourcesPath, 'assets')
-    : path.join(__dirname, '../../assets');
-
-  const getAssetPath = (...paths: string[]): string => {
-    return path.join(RESOURCES_PATH, ...paths);
-  };
-
   mainWindow = new BrowserWindow({
     show: false,
-    width: 1024,
-    height: 728,
+    width: 235,
+    height: 220,
+    x: screen.getPrimaryDisplay().bounds.width - 240 - 10,
+    y: 10,
+    frame: false,
+    transparent: true,
+    resizable: false,
+    autoHideMenuBar: true,
     icon: getAssetPath('icon.png'),
     webPreferences: {
-      preload: path.join(__dirname, 'preload.js'),
+      // preload: path.join(__dirname, 'preload.js'),
+      nodeIntegration: true,
+      contextIsolation: false,
     },
   });
 
@@ -87,19 +121,19 @@ const createWindow = async () => {
     if (!mainWindow) {
       throw new Error('"mainWindow" is not defined');
     }
-    if (process.env.START_MINIMIZED) {
-      mainWindow.minimize();
-    } else {
-      mainWindow.show();
-    }
+    const appState = appProcess.getAppState();
+    if (appState.hidden) mainWindow.hide();
+    else mainWindow.show();
   });
 
   mainWindow.on('closed', () => {
     mainWindow = null;
   });
 
-  const menuBuilder = new MenuBuilder(mainWindow);
-  menuBuilder.buildMenu();
+  mainWindow.removeMenu();
+
+  // const menuBuilder = new MenuBuilder(mainWindow);
+  // menuBuilder.buildMenu();
 
   // Open urls in the user's browser
   mainWindow.webContents.on('new-window', (event, url) => {
@@ -127,6 +161,49 @@ app.on('window-all-closed', () => {
 app
   .whenReady()
   .then(() => {
+    setTimeout(() => {
+      const appTray = new Tray(getAssetPath('icon.png'));
+      appTray.setIgnoreDoubleClickEvents(true);
+      const contextMenu = Menu.buildFromTemplate([
+        {
+          label: 'Show screentime',
+          click: () => {
+            console.log('OPENING SCREENTIME APP!!!');
+            if (mainWindow?.isDestroyed()) createWindow();
+            else mainWindow?.show();
+            appProcess.setAppState({ hidden: false });
+          },
+        },
+        {
+          label: 'Launch on startup',
+          type: 'radio',
+          checked: appProcess.getAppState().autoLaunch,
+          click: (item) => {
+            appProcess.setAppState({ autoLaunch: !appProcess.getAppState().autoLaunch });
+            console.log('Updating state... ', appProcess.getAppState().autoLaunch);
+            contextMenu.items[1].checked = appProcess.getAppState().autoLaunch;
+            appTray.setContextMenu(contextMenu);
+          },
+        },
+        {
+          type: 'separator',
+        },
+        {
+          label: 'Quit',
+          click: () => {
+            console.log('WE ARE QUITTING');
+            mainWindow?.close();
+            appTray.destroy();
+            app.quit();
+          },
+        },
+      ]);
+      appTray.on('click', () => {});
+      appTray.setToolTip('Screentime by Celsbits');
+      appTray.setContextMenu(contextMenu);
+    }, 2000);
+  })
+  .then(() => {
     createWindow();
     app.on('activate', () => {
       // On macOS it's common to re-create a window in the app when the
@@ -134,4 +211,5 @@ app
       if (mainWindow === null) createWindow();
     });
   })
+
   .catch(console.log);
