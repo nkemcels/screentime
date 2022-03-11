@@ -24,12 +24,12 @@ jobs:
           cache: yarn
 
       - name: yarn install
-        run: yarn install --network-timeout 1000000 && npm install typescript -g
+        run: yarn install --network-timeout 1000000 && npm install -g typescript
 
-      - name: npm test
+      - name: run tests
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           yarn run package
           yarn run lint
-          yarn exec tsc
+          yarn run tsc
