@@ -1,3 +1,5 @@
+/* eslint-disable jsx-a11y/no-static-element-interactions */
+/* eslint-disable jsx-a11y/click-events-have-key-events */
 import React, { useEffect, useState } from 'react';
 import { ipcRenderer, BrowserWindow } from 'electron';
 import { useNavigate } from 'react-router-dom';
@@ -46,7 +48,7 @@ const HomeView = () => {
     setInterval(() => {
       ipcRenderer.send('get-current-basic-snapshot');
     }, 5000);
-  }, []);
+  }, [setWindowSize]);
 
   return (
     <div className={Styles.Container} style={{ width: windowSize.width - 20, height: windowSize.height - 20 }}>

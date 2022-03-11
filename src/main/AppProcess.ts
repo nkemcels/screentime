@@ -316,7 +316,9 @@ export default class AppProcess {
     let d: any = {};
     try {
       d = JSON.parse(fs.readFileSync(path.join(this.dataPathDir, '.state')).toString());
-    } catch (e) {}
+    } catch (e) {
+      console.error('Error ', e);
+    }
 
     fs.writeFileSync(path.join(this.dataPathDir, '.state'), JSON.stringify({ ...d, ...state }));
     return { ...d, ...state };
@@ -325,7 +327,9 @@ export default class AppProcess {
   getAppState = (): TAppState => {
     try {
       return JSON.parse(fs.readFileSync(path.join(this.dataPathDir, '.state')).toString());
-    } catch (e) {}
+    } catch (e) {
+      console.error('Error ', e);
+    }
 
     return INITIAL_STATE;
   };

@@ -1,3 +1,7 @@
+/* eslint-disable jsx-a11y/no-static-element-interactions */
+/* eslint-disable jsx-a11y/click-events-have-key-events */
+/* eslint-disable react/require-default-props */
+/* eslint-disable react-hooks/exhaustive-deps */
 import { Button, Icon, Tab, Tabs } from '@blueprintjs/core';
 import classNames from 'classnames';
 import { ipcRenderer } from 'electron';
@@ -32,8 +36,8 @@ const HoursChartDisplay: React.FC<{ width: number; days: number }> = ({ width, d
 
     timeout.current = setInterval(() => {
       requestForData();
-    }, [10000]);
-  }, [days]);
+    }, 10000);
+  }, [days, requestForData]);
 
   useEffect(() => {
     ipcRenderer.on('get-today-hours-snapshot', setChartDataCb);
@@ -101,7 +105,7 @@ const AppDetailsDisplay: React.FC<{ days: number; dataSuffix?: string; dKey: 'mo
 
     timeout.current = setInterval(() => {
       requestForData();
-    }, [10000]);
+    }, 10000);
 
     return () => {
       clearInterval(timeout.current);
