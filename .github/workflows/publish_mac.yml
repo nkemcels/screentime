@@ -41,5 +41,4 @@ jobs:
         run: |
           yarn postinstall
           yarn build
-          pwd && ls /User && echo "---" && ls /User/runner
           yarn exec electron-builder -- --publish always --mac
