@@ -36,4 +36,4 @@ jobs:
         run: |
           yarn postinstall
           yarn build
-          yarn exec electron-builder -- --publish always --win
+          yarn run release
