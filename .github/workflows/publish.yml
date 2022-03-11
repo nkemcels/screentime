@@ -27,7 +27,7 @@ jobs:
           cache: 'npm'
 
       - name: Install dependencies
-        run: yarn install --network-timeout 1000000
+        run: yarn install --network-timeout 1000000 && npm install typescript -g
 
       - name: Publish releases
         env:
