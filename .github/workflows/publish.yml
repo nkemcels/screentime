@@ -5,6 +5,9 @@ on:
     branches:
       - release
 
+env:
+  USE_HARD_LINKS: false
+
 jobs:
   publish:
     runs-on: ${{ matrix.os }}
@@ -24,7 +27,7 @@ jobs:
           cache: 'npm'
 
       - name: Install dependencies
-        run: yarn install --ignore-optional
+        run: yarn install
 
       - name: Publish releases
         env:
