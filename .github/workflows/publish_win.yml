@@ -1,4 +1,4 @@
-name: Publish
+name: Publish for windows
 
 on:
   push:
@@ -30,6 +30,7 @@ jobs:
         run: yarn install --network-timeout 1000000 && npm install typescript -g
 
       - name: Publish releases
+        env:
           # This is used for uploading release assets to github
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
