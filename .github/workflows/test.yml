@@ -24,7 +24,7 @@ jobs:
           cache: yarn
 
       - name: yarn install
-        run: yarn install
+        run: yarn install --network-timeout 1000000
 
       - name: npm test
         env:
