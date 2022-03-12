@@ -18,10 +18,10 @@ const HoursChartDisplay: React.FC<{ width: number; days: number }> = ({ width, d
   const [chartData, setChartData] = useState<{ hours: string; value: number }[]>([]);
   const timeout = useRef<any>();
 
-  const requestForData = () => {
+  const requestForData = useCallback(() => {
     if (days !== 1) ipcRenderer.send('get-days-hours-snapshot', { days });
     else ipcRenderer.send('get-today-hours-snapshot');
-  };
+  }, []);
 
   const setChartDataCb = useCallback((_, resp) => {
     if (Array.isArray(resp)) setChartData(resp);
@@ -80,10 +80,10 @@ const AppDetailsDisplay: React.FC<{ days: number; dataSuffix?: string; dKey: 'mo
   const timeout = useRef<any>();
   const [activeItems, setActiveItems] = useState<string[]>([]);
 
-  const requestForData = () => {
+  const requestForData = useCallback(() => {
     if (days !== 1) ipcRenderer.send(`get-days-${dKey}-snapshot`, { days });
     else ipcRenderer.send(`get-today-${dKey}-snapshot`);
-  };
+  }, []);
 
   const toggleActiveItem = (item: string) => {
     if (activeItems.includes(item)) {
@@ -110,7 +110,7 @@ const AppDetailsDisplay: React.FC<{ days: number; dataSuffix?: string; dKey: 'mo
     return () => {
       clearInterval(timeout.current);
     };
-  }, [days]);
+  }, [days, requestForData]);
 
   useEffect(() => {
     ipcRenderer.on(`get-today-${dKey}-snapshot`, setListDataCb);
